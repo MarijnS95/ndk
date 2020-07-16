@@ -33,7 +33,7 @@ jni-sys = "0.3.0"
 thiserror = "1.0"
 
 [dependencies.jni]
-version = "0.14.0"
+version = "0.17.0"
 optional = true
 
 [dependencies.jni-glue]
