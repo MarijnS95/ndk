@@ -28,7 +28,7 @@ api-level-30 = ["api-level-29"]
 features = ["rustdoc"]
 
 [dependencies]
-num_enum = "0.4.2"
+num_enum = "0.5.0"
 jni-sys = "0.3.0"
 thiserror = "1.0"
 
