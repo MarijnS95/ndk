@@ -5,7 +5,7 @@ use ndk_build::apk::{Apk, ApkConfig};
 use ndk_build::cargo::{cargo_ndk, VersionCode};
 use ndk_build::dylibs::get_libs_search_paths;
 use ndk_build::error::NdkError;
-use ndk_build::manifest::MetaData;
+use ndk_build::manifest::{Activity, MetaData};
 use ndk_build::ndk::Ndk;
 use ndk_build::target::Target;
 use std::path::PathBuf;
@@ -111,7 +111,25 @@ impl<'a> ApkBuilder<'a> {
             manifest.application.label = artifact.name().to_string();
         }
 
-        manifest.application.activity.meta_data.push(MetaData {
+        let activity = if let [activity @ Activity {
+            /*rust_name: None | Some(artifact.name()),*/ ..
+        }] = manifest.application.activities.as_mut_slice()
+        {
+            assert!(activity.rust_name == None || activity.rust_name.as_deref() == Some(artifact.name()));
+            activity
+        } else if manifest.application.activities.is_empty() {
+            manifest.application.activities.push(Default::default());
+            &mut manifest.application.activities[0]
+        } else {
+            manifest
+                .application
+                .activities
+                .iter_mut()
+                .find(|activity| activity.rust_name.as_deref() == Some(artifact.name()))
+                .ok_or_else(|| Error::UnspecifiedActivity(artifact.name().to_string()))?
+        };
+
+        activity.meta_data.push(MetaData {
             name: "android.app.lib_name".to_string(),
             value: artifact.name().replace("-", "_"),
         });

@@ -14,6 +14,8 @@ pub enum Error {
     Ndk(#[from] NdkError),
     #[error(transparent)]
     Io(#[from] IoError),
+    #[error("When multiple activities are specified in `Cargo.toml` at least one must contain `rust_name=\"{0}\"`")]
+    UnspecifiedActivity(String),
 }
 
 impl Error {

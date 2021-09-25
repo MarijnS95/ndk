@@ -101,7 +101,12 @@ name = "com.samsung.android.vr.application.mode"
 value = "vr_only"
 
 # See https://developer.android.com/guide/topics/manifest/activity-element
-[package.metadata.android.application.activity]
+# Android allows multiple activities in its manifest, but can only have one
+# activity with android:name="android.app.NativeActivity"
+[[package.metadata.android.application.activity]]
+
+# The name of the rust library or `[[example]]` this activity description is for
+rust_name = "my_crate"
 
 # See https://developer.android.com/guide/topics/manifest/activity-element#config
 #

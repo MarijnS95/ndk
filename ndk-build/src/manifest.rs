@@ -75,12 +75,16 @@ pub struct Application {
     #[serde(default)]
     pub meta_data: Vec<MetaData>,
     #[serde(default)]
-    pub activity: Activity,
+    #[serde(rename(deserialize = "activity", serialize = "activity"))]
+    pub activities: Vec<Activity>,
 }
 
 /// Android [activity element](https://developer.android.com/guide/topics/manifest/activity-element).
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Activity {
+    #[serde(skip_serializing)]
+    pub rust_name: Option<String>,
+
     #[serde(rename(serialize = "android:configChanges"))]
     #[serde(default = "default_config_changes")]
     pub config_changes: Option<String>,
@@ -107,6 +111,7 @@ pub struct Activity {
 impl Default for Activity {
     fn default() -> Self {
         Self {
+            rust_name: None,
             config_changes: default_config_changes(),
             label: None,
             launch_mode: None,
