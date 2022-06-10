@@ -6,8 +6,10 @@ use ndk::native_window::NativeWindow;
 use ndk_sys::{AInputQueue, ANativeActivity, ANativeWindow, ARect};
 use once_cell::sync::Lazy;
 use std::ffi::{CStr, CString};
+use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::ops::Deref;
 use std::os::raw;
 use std::os::unix::prelude::*;
 use std::ptr::NonNull;
@@ -58,12 +60,50 @@ pub fn native_activity() -> &'static NativeActivity {
     unsafe { NATIVE_ACTIVITY.as_ref().unwrap() }
 }
 
-pub fn native_window() -> RwLockReadGuard<'static, Option<NativeWindow>> {
-    NATIVE_WINDOW.read().unwrap()
+pub struct LockReadGuard<T: ?Sized + 'static>(RwLockReadGuard<'static, T>);
+
+impl<T: ?Sized> Deref for LockReadGuard<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
-pub fn input_queue() -> RwLockReadGuard<'static, Option<InputQueue>> {
-    INPUT_QUEUE.read().unwrap()
+impl<T: ?Sized + fmt::Debug> fmt::Debug for LockReadGuard<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T: ?Sized + fmt::Display> fmt::Display for LockReadGuard<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+/// Returns a [`NativeWindow`] held inside a lock, preventing Android from freeing it immediately
+/// in [its `NativeWindow` destructor].
+///
+/// If the window is in use by e.g. a graphics API, make sure to hold on to this lock.
+///
+/// After receiving [`Event::WindowDestroyed`] `ndk-glue` will block in Android's [`NativeWindow`] destructor
+/// callback until the lock is released, returning to Android and allowing it to free the window.
+///
+/// [its `NativeWindow` destructor]: https://developer.android.com/ndk/reference/struct/a-native-activity-callbacks#onnativewindowdestroyed
+pub fn native_window() -> LockReadGuard<Option<NativeWindow>> {
+    LockReadGuard(NATIVE_WINDOW.read().unwrap())
+}
+
+/// Returns an [`InputQueue`] held inside a lock, preventing Android from freeing it immediately
+/// in [its `InputQueue` destructor].
+///
+/// After receiving [`Event::InputQueueDestroyed`] `ndk-glue` will block in Android's [`InputQueue`] destructor
+/// callback until the lock is released, returning to Android and allowing it to free the window.
+///
+/// [its `InputQueue` destructor]: https://developer.android.com/ndk/reference/struct/a-native-activity-callbacks#oninputqueuedestroyed
+pub fn input_queue() -> LockReadGuard<Option<InputQueue>> {
+    LockReadGuard(INPUT_QUEUE.read().unwrap())
 }
 
 pub fn content_rect() -> Rect {
@@ -116,19 +156,34 @@ pub enum Event {
     LowMemory,
     WindowLostFocus,
     WindowHasFocus,
+    /// A [`NativeWindow`] is now available through [`native_window()`]. See that function for more
+    /// details about holding on to the returned [`LockReadGuard`].
+    ///
+    /// Be sure to release any resources (e.g. Vulkan/OpenGL graphics surfaces) created from
+    /// it followed by releasing this lock upon receiving [`Event::WindowDestroyed`].
     WindowCreated,
     WindowResized,
     WindowRedrawNeeded,
-    /// If the window is in use by ie. a graphics API, make sure the lock from
+    /// If the window is in use by e.g. a graphics API, make sure the [`LockReadGuard`] from
     /// [`native_window()`] is held on to until after freeing those resources.
     ///
-    /// After receiving this [`Event`] `ndk_glue` will block until that read-lock
-    /// is released before returning to Android and allowing it to free up the window.
+    /// After receiving this [`Event`] `ndk_glue` will block inside its [`NativeWindow`] destructor
+    /// until that read-lock is released before returning to Android and allowing it to free the
+    /// window.
+    ///
+    /// From this point [`native_window()`] will return [`None`] until receiving
+    /// [`Event::WindowCreated`] again.
     WindowDestroyed,
+    /// An [`InputQueue`] is now available through [`input_queue()`].
+    ///
+    /// Be sure to release the returned lock upon receiving [`Event::InputQueueDestroyed`].
     InputQueueCreated,
-    /// After receiving this [`Event`] `ndk_glue` will block until the read-lock from
-    /// [`input_queue()`] is released before returning to Android and allowing it to
-    /// free up the input queue.
+    /// After receiving this [`Event`] `ndk_glue` will block inside its [`InputQueue`] destructor
+    /// until the read-lock from [`input_queue()`] is released before returning to Android and
+    /// allowing it to free the input queue.
+    ///
+    /// From this point [`input_queue()`] will return [`None`] until receiving
+    /// [`Event::InputQueueCreated`] again.
     InputQueueDestroyed,
     ContentRectChanged,
 }
