@@ -10,6 +10,9 @@ readme = "README.md"
 documentation = "https://docs.rs/ndk-glue"
 homepage = "https://github.com/rust-windowing/android-ndk-rs"
 repository = "https://github.com/rust-windowing/android-ndk-rs"
+# https://github.com/rust-windowing/android-ndk-rs/pull/282#issuecomment-1152977094
+# Needed for `const fn` `RwLock::new()` constructors
+rust-version = "1.61.0"
 
 [dependencies]
 android_logger = { version = "0.10.1", optional = true }

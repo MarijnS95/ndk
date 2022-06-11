@@ -6,7 +6,7 @@ jobs:
   formatting:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
@@ -20,7 +20,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
@@ -35,6 +35,17 @@ jobs:
         # This assumes our host-tools (cargo-apk and dependencies)
         # also compile cleanly under this target.
         args: --all --all-targets --all-features --target aarch64-linux-android -- -Dwarnings
+
+  check_msrv:
+    name: Check MSRV (1.61.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@1.61.0
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --all --all-targets --all-features --target aarch64-linux-android -- -Dwarnings
 
   build:
     strategy:
@@ -59,7 +70,7 @@ jobs:
     name: Build apk
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Installing Rust ${{ matrix.rust-channel }} w/ ${{ matrix.rust-target }}
       uses: actions-rs/toolchain@v1
@@ -78,7 +89,7 @@ jobs:
     - name: Cargo apk build for target ${{ matrix.rust-target }}
       run: cargo apk build -p ndk-examples --target ${{ matrix.rust-target }} --examples
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       # Only need this for CI, unless users are interested in downloading
       # a ready-made app that does nothing but printing "hello world".
       if: ${{ matrix.rust-target == 'x86_64-linux-android' }}
@@ -104,9 +115,9 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       name: Download hello_world APK
       if: ${{ matrix.source_os != 'local' }}
       id: download
@@ -155,7 +166,7 @@ jobs:
         script: ./.github/workflows/android_test.sh "${{ steps.download.outputs.download-path }}"
 
     - name: Upload emulator logs
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ always() }}
       with:
         name: log
@@ -172,7 +183,7 @@ jobs:
     name: Host-side tests
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Installing Rust ${{ matrix.rust-channel }}
       uses: actions-rs/toolchain@v1
@@ -215,7 +226,7 @@ jobs:
     name: Build-test docs
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Installing Rust ${{ matrix.rust-channel }}
       uses: actions-rs/toolchain@v1
