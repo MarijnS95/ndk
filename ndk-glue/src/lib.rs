@@ -49,9 +49,9 @@ pub fn android_log(level: Level, tag: &CStr, msg: &CStr) {
     }
 }
 
-static NATIVE_WINDOW: Lazy<RwLock<Option<NativeWindow>>> = Lazy::new(Default::default);
-static INPUT_QUEUE: Lazy<RwLock<Option<InputQueue>>> = Lazy::new(Default::default);
-static CONTENT_RECT: Lazy<RwLock<Rect>> = Lazy::new(Default::default);
+static NATIVE_WINDOW: RwLock<Option<NativeWindow>> = RwLock::new(None);
+static INPUT_QUEUE: RwLock<Option<InputQueue>> = RwLock::new(None);
+static CONTENT_RECT: RwLock<Rect> = RwLock::new(Rect::empty());
 static LOOPER: Lazy<Mutex<Option<ForeignLooper>>> = Lazy::new(Default::default);
 
 static mut NATIVE_ACTIVITY: Option<NativeActivity> = None;
@@ -155,6 +155,17 @@ pub struct Rect {
     pub top: u32,
     pub right: u32,
     pub bottom: u32,
+}
+
+impl Rect {
+    pub const fn empty() -> Self {
+        Self {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
