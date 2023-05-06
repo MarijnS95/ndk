@@ -12,15 +12,16 @@
 
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::convert::TryInto;
+use std::marker::PhantomData;
 use std::ptr::NonNull;
 
 /// A native [`AInputEvent *`]
 ///
 /// [`AInputEvent *`]: https://developer.android.com/ndk/reference/group/input#ainputevent
 #[derive(Debug)]
-pub enum InputEvent {
-    MotionEvent(MotionEvent),
-    KeyEvent(KeyEvent),
+pub enum InputEvent<'a> {
+    MotionEvent(MotionEvent<'a>),
+    KeyEvent(KeyEvent<'a>),
 }
 
 /// An enum representing the source of an [`InputEvent`].
@@ -62,7 +63,7 @@ enum Class {
     Joystick = ffi::AINPUT_SOURCE_CLASS_JOYSTICK,
 }
 
-impl InputEvent {
+impl<'a> InputEvent<'a> {
     /// Initialize an [`InputEvent`] from a pointer
     ///
     /// # Safety
@@ -81,8 +82,8 @@ impl InputEvent {
     #[inline]
     pub fn ptr(&self) -> NonNull<ffi::AInputEvent> {
         match self {
-            InputEvent::MotionEvent(MotionEvent { ptr }) => *ptr,
-            InputEvent::KeyEvent(KeyEvent { ptr }) => *ptr,
+            InputEvent::MotionEvent(MotionEvent { ptr, _marker: _ }) => *ptr,
+            InputEvent::KeyEvent(KeyEvent { ptr, _marker: _ }) => *ptr,
         }
     }
 
@@ -192,8 +193,9 @@ impl MetaState {
 ///
 /// [`AInputEvent *`]: https://developer.android.com/ndk/reference/group/input#ainputevent
 #[derive(Clone, Debug)]
-pub struct MotionEvent {
+pub struct MotionEvent<'a> {
     ptr: NonNull<ffi::AInputEvent>,
+    _marker: PhantomData<&'a ()>,
 }
 
 // TODO: thread safety?
@@ -362,7 +364,7 @@ impl MotionEventFlags {
     }
 }
 
-impl MotionEvent {
+impl<'a> MotionEvent<'a> {
     /// Constructs a MotionEvent from a pointer to a native [`ffi::AInputEvent`]
     ///
     /// # Safety
@@ -371,7 +373,10 @@ impl MotionEvent {
     /// is an `AMotionEvent`.
     #[inline]
     pub unsafe fn from_ptr(ptr: NonNull<ffi::AInputEvent>) -> Self {
-        Self { ptr }
+        Self {
+            ptr,
+            _marker: PhantomData,
+        }
     }
 
     /// Returns a pointer to the native [`ffi::AInputEvent`]
@@ -455,7 +460,7 @@ impl MotionEvent {
             event: self.ptr,
             next_index: 0,
             count: self.pointer_count(),
-            _marker: std::marker::PhantomData,
+            _marker: PhantomData,
         }
     }
 
@@ -470,7 +475,7 @@ impl MotionEvent {
         Pointer {
             event: self.ptr,
             index,
-            _marker: std::marker::PhantomData,
+            _marker: PhantomData,
         }
     }
 
@@ -490,7 +495,7 @@ impl MotionEvent {
             event: self.ptr,
             next_history_index: 0,
             history_size: self.history_size(),
-            _marker: std::marker::PhantomData,
+            _marker: PhantomData,
         }
     }
 
@@ -591,7 +596,7 @@ impl MotionEvent {
 pub struct Pointer<'a> {
     event: NonNull<ffi::AInputEvent>,
     index: usize,
-    _marker: std::marker::PhantomData<&'a MotionEvent>,
+    _marker: PhantomData<MotionEvent<'a>>,
 }
 
 // TODO: thread safety?
@@ -688,7 +693,7 @@ pub struct PointersIter<'a> {
     event: NonNull<ffi::AInputEvent>,
     next_index: usize,
     count: usize,
-    _marker: std::marker::PhantomData<&'a MotionEvent>,
+    _marker: PhantomData<MotionEvent<'a>>,
 }
 
 // TODO: thread safety?
@@ -700,7 +705,7 @@ impl<'a> Iterator for PointersIter<'a> {
             let ptr = Pointer {
                 event: self.event,
                 index: self.next_index,
-                _marker: std::marker::PhantomData,
+                _marker: PhantomData,
             };
             self.next_index += 1;
             Some(ptr)
@@ -725,7 +730,7 @@ impl<'a> ExactSizeIterator for PointersIter<'a> {
 pub struct HistoricalMotionEvent<'a> {
     event: NonNull<ffi::AInputEvent>,
     history_index: usize,
-    _marker: std::marker::PhantomData<&'a MotionEvent>,
+    _marker: PhantomData<MotionEvent<'a>>,
 }
 
 // TODO: thread safety?
@@ -761,7 +766,7 @@ impl<'a> HistoricalMotionEvent<'a> {
             pointer_count: unsafe {
                 ffi::AMotionEvent_getPointerCount(self.event.as_ptr()) as usize
             },
-            _marker: std::marker::PhantomData,
+            _marker: PhantomData,
         }
     }
 }
@@ -774,7 +779,7 @@ pub struct HistoricalMotionEventsIter<'a> {
     event: NonNull<ffi::AInputEvent>,
     next_history_index: usize,
     history_size: usize,
-    _marker: std::marker::PhantomData<&'a MotionEvent>,
+    _marker: PhantomData<MotionEvent<'a>>,
 }
 
 // TODO: thread safety?
@@ -787,7 +792,7 @@ impl<'a> Iterator for HistoricalMotionEventsIter<'a> {
             let res = HistoricalMotionEvent {
                 event: self.event,
                 history_index: self.next_history_index,
-                _marker: std::marker::PhantomData,
+                _marker: PhantomData,
             };
             self.next_history_index += 1;
             Some(res)
@@ -813,7 +818,7 @@ impl<'a> DoubleEndedIterator for HistoricalMotionEventsIter<'a> {
             Some(HistoricalMotionEvent {
                 event: self.event,
                 history_index: self.history_size,
-                _marker: std::marker::PhantomData,
+                _marker: PhantomData,
             })
         } else {
             None
@@ -827,7 +832,7 @@ pub struct HistoricalPointer<'a> {
     event: NonNull<ffi::AInputEvent>,
     pointer_index: usize,
     history_index: usize,
-    _marker: std::marker::PhantomData<&'a MotionEvent>,
+    _marker: PhantomData<MotionEvent<'a>>,
 }
 
 // TODO: thread safety?
@@ -991,7 +996,7 @@ pub struct HistoricalPointersIter<'a> {
     history_index: usize,
     next_pointer_index: usize,
     pointer_count: usize,
-    _marker: std::marker::PhantomData<&'a MotionEvent>,
+    _marker: PhantomData<MotionEvent<'a>>,
 }
 
 // TODO: thread safety?
@@ -1005,7 +1010,7 @@ impl<'a> Iterator for HistoricalPointersIter<'a> {
                 event: self.event,
                 history_index: self.history_index,
                 pointer_index: self.next_pointer_index,
-                _marker: std::marker::PhantomData,
+                _marker: PhantomData,
             };
             self.next_pointer_index += 1;
             Some(ptr)
@@ -1034,8 +1039,9 @@ impl ExactSizeIterator for HistoricalPointersIter<'_> {
 ///
 /// [`AInputEvent *`]: https://developer.android.com/ndk/reference/group/input#ainputevent
 #[derive(Debug)]
-pub struct KeyEvent {
+pub struct KeyEvent<'a> {
     ptr: NonNull<ffi::AInputEvent>,
+    _marker: PhantomData<&'a ()>,
 }
 
 // TODO: thread safety?
@@ -1348,7 +1354,7 @@ pub enum Keycode {
     ProfileSwitch = ffi::AKEYCODE_PROFILE_SWITCH,
 }
 
-impl KeyEvent {
+impl<'a> KeyEvent<'a> {
     /// Constructs a KeyEvent from a pointer to a native [`ffi::AInputEvent`]
     ///
     /// # Safety
@@ -1356,7 +1362,10 @@ impl KeyEvent {
     /// [`ffi::AInputEvent`], and that [`ffi::AInputEvent`] is an `AKeyEvent`.
     #[inline]
     pub unsafe fn from_ptr(ptr: NonNull<ffi::AInputEvent>) -> Self {
-        Self { ptr }
+        Self {
+            ptr,
+            _marker: PhantomData,
+        }
     }
 
     /// Returns a pointer to the native [`ffi::AInputEvent`]
@@ -1496,7 +1505,7 @@ impl KeyEventFlags {
     }
 }
 
-impl KeyEvent {
+impl<'a> KeyEvent<'a> {
     /// Flags associated with this [`KeyEvent`].
     ///
     /// See [the NDK docs](https://developer.android.com/ndk/reference/group/input#akeyevent_getflags)

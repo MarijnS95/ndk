@@ -42,7 +42,7 @@ impl InputQueue {
     /// Returns the next available [`InputEvent`] from the queue.
     ///
     /// Returns [`None`] if no event is available.
-    pub fn get_event(&self) -> Result<Option<InputEvent>> {
+    pub fn get_event(&mut self) -> Result<Option<InputEvent>> {
         let mut out_event = ptr::null_mut();
         let status = unsafe { ffi::AInputQueue_getEvent(self.ptr.as_ptr(), &mut out_event) };
         match status_to_io_result(status, ()) {
@@ -74,7 +74,7 @@ impl InputQueue {
     /// appear again in the event queue (if it does not get consumed during pre-dispatching).
     ///
     /// Also returns [`None`] if `event` is not a [`KeyEvent`].
-    pub fn pre_dispatch(&self, event: InputEvent) -> Option<InputEvent> {
+    pub fn pre_dispatch<'a>(&'a mut self, event: InputEvent<'a>) -> Option<InputEvent<'a>> {
         match unsafe { ffi::AInputQueue_preDispatchEvent(self.ptr.as_ptr(), event.ptr().as_ptr()) }
         {
             0 => Some(event),
@@ -110,4 +110,15 @@ impl InputQueue {
     pub fn detach_looper(&self) {
         unsafe { ffi::AInputQueue_detachLooper(self.ptr.as_ptr()) }
     }
+}
+
+#[test]
+fn blah() {
+    let mut x =
+        unsafe { InputQueue::from_ptr(std::ptr::NonNull::new_unchecked(std::ptr::null_mut())) };
+    let e = x.get_event().unwrap().unwrap();
+    // let e = InputEvent::MotionEvent(unsafe {
+    //     MotionEvent::from_ptr(std::ptr::NonNull::new_unchecked(std::ptr::null_mut()))
+    // });
+    let e = x.pre_dispatch(e);
 }
