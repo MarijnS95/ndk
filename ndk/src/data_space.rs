@@ -223,13 +223,13 @@ pub enum DataSpace {
     ///
     /// [`HAL_PIXEL_FORMAT_Y16`]: https://cs.android.com/android/platform/superproject/main/+/main:frameworks/native/libs/nativewindow/include/vndk/hardware_buffer.h;l=74-75;drc=45317f5c7c966fc816843217adc96a2ddea8bf29
     /// [`HAL_PIXEL_FORMAT_BLOB`]: super::hardware_buffer_format::HardwareBufferFormat::BLOB
-    #[doc(alias = "DEPTH")]
-    Depth = ffi::ADataSpace::DEPTH.0 as i32,
+    #[doc(alias = "ADATASPACE_DEPTH")]
+    Depth = ffi::ADataSpace::ADATASPACE_DEPTH.0 as i32,
     /// ISO `16684-1:2011(E)` Dynamic Depth.
     ///
     /// Embedded depth metadata following the dynamic depth specification.
-    #[doc(alias = "DYNAMIC_DEPTH")]
-    DynamicDepth = ffi::ADataSpace::DYNAMIC_DEPTH.0 as i32,
+    #[doc(alias = "ADATASPACE_DYNAMIC_DEPTH")]
+    DynamicDepth = ffi::ADataSpace::ADATASPACE_DYNAMIC_DEPTH.0 as i32,
 
     #[doc(hidden)]
     #[num_enum(catch_all)]
