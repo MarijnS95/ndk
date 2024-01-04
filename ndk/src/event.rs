@@ -1366,6 +1366,39 @@ pub enum Keycode {
     ThumbsDown = ffi::AKEYCODE_THUMBS_DOWN as i32,
     ProfileSwitch = ffi::AKEYCODE_PROFILE_SWITCH as i32,
 
+    #[cfg(feature = "api-level-35")]
+    VideoApp1 = ffi::AKEYCODE_VIDEO_APP_1 as i32,
+    #[cfg(feature = "api-level-35")]
+    VideoApp2 = ffi::AKEYCODE_VIDEO_APP_2 as i32,
+    #[cfg(feature = "api-level-35")]
+    VideoApp3 = ffi::AKEYCODE_VIDEO_APP_3 as i32,
+    #[cfg(feature = "api-level-35")]
+    VideoApp4 = ffi::AKEYCODE_VIDEO_APP_4 as i32,
+    #[cfg(feature = "api-level-35")]
+    VideoApp5 = ffi::AKEYCODE_VIDEO_APP_5 as i32,
+    #[cfg(feature = "api-level-35")]
+    VideoApp6 = ffi::AKEYCODE_VIDEO_APP_6 as i32,
+    #[cfg(feature = "api-level-35")]
+    VideoApp7 = ffi::AKEYCODE_VIDEO_APP_7 as i32,
+    #[cfg(feature = "api-level-35")]
+    VideoApp8 = ffi::AKEYCODE_VIDEO_APP_8 as i32,
+    #[cfg(feature = "api-level-35")]
+    FeaturedApp1 = ffi::AKEYCODE_FEATURED_APP_1 as i32,
+    #[cfg(feature = "api-level-35")]
+    FeaturedApp2 = ffi::AKEYCODE_FEATURED_APP_2 as i32,
+    #[cfg(feature = "api-level-35")]
+    FeaturedApp3 = ffi::AKEYCODE_FEATURED_APP_3 as i32,
+    #[cfg(feature = "api-level-35")]
+    FeaturedApp4 = ffi::AKEYCODE_FEATURED_APP_4 as i32,
+    #[cfg(feature = "api-level-35")]
+    DemoApp1 = ffi::AKEYCODE_DEMO_APP_1 as i32,
+    #[cfg(feature = "api-level-35")]
+    DemoApp2 = ffi::AKEYCODE_DEMO_APP_2 as i32,
+    #[cfg(feature = "api-level-35")]
+    DemoApp3 = ffi::AKEYCODE_DEMO_APP_3 as i32,
+    #[cfg(feature = "api-level-35")]
+    DemoApp4 = ffi::AKEYCODE_DEMO_APP_4 as i32,
+
     #[doc(hidden)]
     #[num_enum(catch_all)]
     __Unknown(i32),
