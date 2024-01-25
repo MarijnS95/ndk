@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -ex
+
 os=$(uname -s)
 
 if [[ "$os" == "Darwin" ]]; then
@@ -10,8 +12,12 @@ else
     host_tag="linux-x86_64"
 fi
 
-# sysroot="${ANDROID_NDK_ROOT}"/toolchains/llvm/prebuilt/${host_tag}/sysroot/
-sysroot=$HOME/Downloads/ndk-11575120/sysroot
+build_number=$(grep -oP 'version = "\d\.\d.\d\+\K\d+' ./Cargo.toml)
+url="https://ci.android.com/builds/submitted/$build_number/ndk/latest/ndk_platform.tar.bz2"
+sysroot="$PWD/ndk-$build_number/sysroot/"
+echo "Downloading sysroot $build_number from $url"
+curl -LO $url
+tar xvf ndk_platform.tar.bz2 -C ndk-$build_number
 [ ! -d "$sysroot" ] && echo "Android sysroot $sysroot does not exist!" && exit 1
 
 while read ARCH && read TARGET ; do
