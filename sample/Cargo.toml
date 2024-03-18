@@ -1,0 +1,9 @@
+[package]
+name = "sample"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libloading = "0.8.3"
+ndk = { path = "../ndk", all-features = true }
+ndk-sys = { path = "../ndk-sys", all-features = true }
