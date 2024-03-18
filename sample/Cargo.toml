@@ -5,5 +5,6 @@ edition = "2021"
 
 [dependencies]
 libloading = "0.8.3"
-ndk = { path = "../ndk", all-features = true }
-ndk-sys = { path = "../ndk-sys", all-features = true }
+ndk = { path = "../ndk", features = ["binder", "api-level-29"] }
+ndk-sys = { path = "../ndk-sys" }
+rustix = { version = "0.38", features = ["pipe"] }
