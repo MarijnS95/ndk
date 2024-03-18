@@ -13,6 +13,7 @@
 
 pub mod asset;
 pub mod audio;
+pub mod binder;
 pub mod bitmap;
 pub mod configuration;
 pub mod data_space;

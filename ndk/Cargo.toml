@@ -17,7 +17,7 @@ default = ["rwh_06"]
 all = ["audio", "binder", "bitmap", "media", "nativewindow", "sync", "api-level-34", "rwh_04", "rwh_05", "rwh_06"]
 
 audio = ["ffi/audio", "api-level-26"]
-binder = ["ffi/binder"]
+binder = ["ffi/binder", "api-level-29"]
 bitmap = ["ffi/bitmap"]
 media = ["ffi/media"]
 nativewindow = ["ffi/nativewindow"]
