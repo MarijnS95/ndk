@@ -592,6 +592,7 @@ impl IBinder {
     pub fn class(&self) -> Option<&IBinderClass> {
         let class = unsafe { ffi::AIBinder_getClass(self.ptr.as_ptr()) };
 
+        dbg!(class);
         todo!()
         // NonNull::new(class).map(IBinderClass::from_ptr)
     }
