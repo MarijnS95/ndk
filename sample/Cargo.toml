@@ -3,8 +3,12 @@ name = "sample"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
-libloading = "0.8.3"
-ndk = { path = "../ndk", features = ["binder", "api-level-29"] }
-ndk-sys = { path = "../ndk-sys" }
-rustix = { version = "0.38", features = ["pipe"] }
+# libloading = "0.8.3"
+# ndk = { path = "../ndk", features = ["binder", "api-level-29"] }
+# ndk-sys = { path = "../ndk-sys" }
+# rustix = { version = "0.38", features = ["pipe"] }
+android-powerstats = { path = "../../binder_rs/android-powerstats" }
