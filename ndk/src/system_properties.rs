@@ -3,7 +3,10 @@
 //! [System Properties]: https://source.android.com/docs/core/architecture/configuration/add-system-properties
 
 use std::{
-    ffi::{c_char, c_void, CStr, CString, FromBytesWithNulError, FromVecWithNulError},
+    ffi::{
+        c_char, c_void, CStr, CString, FromBytesUntilNulError, FromBytesWithNulError,
+        FromVecWithNulError,
+    },
     fmt,
     ptr::NonNull,
     str::{FromStr, Utf8Error},
@@ -20,8 +23,10 @@ use crate::utils::abort_on_panic;
 pub enum GetRawError {
     #[error("Property is missing or empty")]
     MissingOrEmpty,
-    #[error(transparent)]
-    NulError(#[from] FromVecWithNulError),
+    #[error("Property value does not include a terminating NUL")]
+    ValueMissingNul(#[source] FromVecWithNulError),
+    #[error("Property name does not include a terminating NUL")]
+    NameMissingNul(#[source] FromBytesUntilNulError),
     #[error("Failed")]
     Failed,
 }
@@ -41,7 +46,7 @@ fn process_owned(get: impl FnOnce(*mut c_char) -> i32) -> Result<CString, GetRaw
             // making this have no advantage over the stack-local variant that allocates after the
             // fact.
             unsafe { value.set_len(ret as usize + 1) }
-            Ok(CString::from_vec_with_nul(value)?)
+            Ok(CString::from_vec_with_nul(value).map_err(GetRawError::ValueMissingNul)?)
         }
         _ => unreachable!("Status is unexpected integer {ret}"),
     }
@@ -68,9 +73,11 @@ pub fn get_raw(name: &CStr) -> Result<CString, GetRawError> {
 pub enum GetError<T> {
     #[error("Property is missing or empty")]
     MissingOrEmpty,
-    #[error(transparent)]
-    NulError(#[from] FromBytesWithNulError),
-    #[error("Property does not contain valid UTF-8")]
+    #[error("Property value does not include a terminating NUL")]
+    ValueMissingNul(#[source] FromBytesWithNulError),
+    #[error("Property name does not include a terminating NUL")]
+    NameMissingNul(#[source] FromBytesUntilNulError),
+    #[error("Property value does not contain valid UTF-8")]
     Utf8Error(#[from] Utf8Error),
     #[error("Failed")]
     Failed,
@@ -86,7 +93,8 @@ fn process_parse<T: FromStr>(get: impl FnOnce(*mut c_char) -> i32) -> Result<T, 
         0 => Err(GetError::MissingOrEmpty),
         -1 => Err(GetError::Failed),
         1.. => {
-            let c_str = CStr::from_bytes_with_nul(&value[..ret as usize + 1])?;
+            let c_str = CStr::from_bytes_with_nul(&value[..ret as usize + 1])
+                .map_err(GetError::ValueMissingNul)?;
             c_str.to_str()?.parse().map_err(GetError::ParseError)
         }
         _ => unreachable!("Status is unexpected integer {ret}"),
@@ -226,8 +234,9 @@ impl Property {
         }
     }
 
-    /// Returns an owned [`CString`] with possibly invalid UTF-8 [but no interior NULs].  The
-    /// maximum length can be up to 92 ([`ffi::PROP_VALUE_MAX`]) including NUL terminator.
+    /// Returns a tuple of the `(name, value)` as owned [`CString`]s with possibly invalid UTF-8
+    /// [but no interior NULs].  The maximum length can be up to 32 bytes ([`ffi::PROP_NAME_MAX`])
+    /// for the name and 92 bytes ([`ffi::PROP_VALUE_MAX`]) for the value including NUL terminator.
     ///
     /// [but no interior NULs]: GetRawError::NulError
     ///
@@ -238,14 +247,18 @@ impl Property {
     /// Deprecated since Android O (API level 26), use [`Self::read_callback()`] instead which does
     /// not have a limit on `value` nor `name` length.
     #[doc(alias = "__system_property_read")]
-    pub fn read_raw(&self) -> Result<CString, GetRawError> {
-        process_owned(|value| unsafe {
-            // TODO: should we return the name of ffi::PROP_NAME_MAX?
-            ffi::__system_property_read(self.0.as_ptr(), std::ptr::null_mut(), value)
-        })
+    pub fn read_raw(&self) -> Result<(CString, CString), GetRawError> {
+        let mut name = [0u8; ffi::PROP_NAME_MAX as usize];
+        let value = process_owned(|value| unsafe {
+            ffi::__system_property_read(self.0.as_ptr(), name.as_mut_ptr(), value)
+        })?;
+        let name = CStr::from_bytes_until_nul(&name)
+            .map_err(GetRawError::NameMissingNul)?
+            .to_owned();
+        Ok((name, value))
     }
 
-    /// Returns the property value as a [`FromStr`]-parsed type from a source string of at most 92
+    /// Returns the property name TODO and value as a [`FromStr`]-parsed type from a source string of at most 92
     /// ([`ffi::PROP_VALUE_MAX`]) characters, including NUL terminator.
     ///
     /// # Implementation details
@@ -262,11 +275,15 @@ impl Property {
     /// Deprecated since Android O (API level 26), use [`Self::read_callback()`] instead which does
     /// not have a limit on `value` nor `name` length.
     #[doc(alias = "__system_property_read")]
-    pub fn read<T: FromStr>(&self) -> Result<T, GetError<T::Err>> {
-        process_parse(|value| unsafe {
-            // TODO: should we return the name of ffi::PROP_NAME_MAX?
-            ffi::__system_property_read(self.0.as_ptr(), std::ptr::null_mut(), value)
-        })
+    pub fn read<T: FromStr>(&self) -> Result<(CString, T), GetError<T::Err>> {
+        let mut name = [0u8; ffi::PROP_NAME_MAX as usize];
+        let value = process_parse(|value| unsafe {
+            ffi::__system_property_read(self.0.as_ptr(), name.as_mut_ptr(), value)
+        })?;
+        let name = CStr::from_bytes_until_nul(&name)
+            .map_err(GetError::NameMissingNul)?
+            .to_owned();
+        Ok((name, value))
     }
 
     /// Calls `callback` with a consistent trio of `name`, `value` and `serial` number (stored in
